@@ -1,0 +1,23 @@
+name = "wisp_roadrunner"
+version = "0.1.0"
+description = "Run Wisp apps on Roadrunner, the pure-Erlang HTTP/1.1, HTTP/2, HTTP/3 and WebSocket server"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "arizona-framework", repo = "wisp_roadrunner" }
+links = [
+  { title = "Roadrunner", href = "https://github.com/arizona-framework/roadrunner" },
+  { title = "Wisp", href = "https://hexdocs.pm/wisp" },
+]
+gleam = ">= 1.19.0"
+target = "erlang"
+
+[dependencies]
+roadrunner_gleam = { git = "https://github.com/arizona-framework/roadrunner_gleam", ref = "aa65fb2f3af9739a5b725d31ab2da4ed72d85418" }
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+wisp = ">= 2.2.2 and < 3.0.0"
+gleam_http = ">= 4.5.0 and < 5.0.0"
+gleam_erlang = ">= 1.3.0 and < 2.0.0"
+exception = ">= 2.1.1 and < 3.0.0"
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
+gleam_otp = ">= 1.3.0 and < 2.0.0"
