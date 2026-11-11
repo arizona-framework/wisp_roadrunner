@@ -1,7 +1,9 @@
 # wisp_roadrunner
 
 [![CI](https://github.com/arizona-framework/wisp_roadrunner/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arizona-framework/wisp_roadrunner/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/arizona-framework/wisp_roadrunner/blob/main/LICENSE.md)
+[![Hex.pm](https://img.shields.io/hexpm/v/wisp_roadrunner.svg)](https://hex.pm/packages/wisp_roadrunner)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/wisp_roadrunner/)
+[![License](https://img.shields.io/hexpm/l/wisp_roadrunner.svg)](https://github.com/arizona-framework/wisp_roadrunner/blob/main/LICENSE.md)
 
 Run [Wisp](https://hexdocs.pm/wisp) apps on
 [Roadrunner](https://github.com/arizona-framework/roadrunner), the
@@ -15,9 +17,15 @@ Roadrunner.
 
 ## 🚧 Status
 
-wisp_roadrunner is in `0.x` and not on Hex yet: it is released once
-roadrunner_gleam is. The core is functional and covered by tests, but the
-API may change between minor versions.
+wisp_roadrunner is in `0.x`. The core is functional and covered by tests,
+but the API may change between minor versions. Pin an exact version in your
+deps if you need stability across upgrades.
+
+## Installation
+
+```sh
+gleam add wisp_roadrunner roadrunner_gleam
+```
 
 ## Usage
 

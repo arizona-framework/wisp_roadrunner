@@ -53,6 +53,9 @@ jobs:
       - name: Build docs
         run: gleam docs build
 
+      - name: Build Hex package
+        run: gleam export hex-tarball
+
   test:
     name: Test (OTP ${{ matrix.otp }})
 
