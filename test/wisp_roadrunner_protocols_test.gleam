@@ -29,20 +29,22 @@ fn handle(req: wisp.Request) -> wisp.Response {
   }
 }
 
-fn serve(name: String, test_body: fn(Int) -> a) -> a {
+/// A TLS listener on port 0 serving HTTP/1.1, HTTP/2 and HTTP/3, handing
+/// the test its TCP port and the UDP port HTTP/3 got.
+fn serve(name: String, test_body: fn(Int, Int) -> a) -> a {
   let #(certfile, keyfile) = write_cert("build/test_tls")
-  let port = free_port()
   let assert Ok(actor.Started(data: listener, ..)) =
     wisp_roadrunner.handler(handle, "test-secret-key-base-long-enough-to-sign")
     |> roadrunner_gleam.new
     |> roadrunner_gleam.read_body_on_demand
-    |> roadrunner_gleam.port(port)
+    |> roadrunner_gleam.port(0)
     |> roadrunner_gleam.bind("127.0.0.1")
     |> roadrunner_gleam.name(name)
     |> roadrunner_gleam.tls(certfile:, keyfile:)
     |> roadrunner_gleam.http3
     |> roadrunner_gleam.start
-  let result = test_body(port)
+  let assert Ok(quic_port) = roadrunner_gleam.listener_quic_port(listener)
+  let result = test_body(roadrunner_gleam.listener_port(listener), quic_port)
   roadrunner_gleam.stop(listener)
   result
 }
@@ -85,9 +87,6 @@ fn h3_request(
   body: BitArray,
 ) -> BitArray
 
-@external(erlang, "wisp_roadrunner_test_ffi", "free_port")
-fn free_port() -> Int
-
 @external(erlang, "wisp_roadrunner_test_ffi", "write_cert")
 fn write_cert(dir: String) -> #(String, String)
 
@@ -95,9 +94,9 @@ fn write_cert(dir: String) -> #(String, String)
 fn read_file(path: String) -> Result(String, Nil)
 
 fn each_protocol(name: String, check: fn(Protocol, Int) -> Nil) -> Nil {
-  use port <- serve(name)
-  check(H2, port)
-  check(H3, port)
+  use tcp_port, quic_port <- serve(name)
+  check(H2, tcp_port)
+  check(H3, quic_port)
 }
 
 pub fn body_in_pieces_test() {
