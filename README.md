@@ -77,7 +77,7 @@ fn(request) {
 |> roadrunner_gleam.new
 ```
 
-## What works
+## Features
 
 - Wisp handlers on HTTP/1.1, HTTP/2 and HTTP/3
 - Request bodies read in pieces of Wisp's `read_chunk_size`, with its
