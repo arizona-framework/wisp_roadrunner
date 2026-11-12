@@ -58,7 +58,26 @@ fn handle_request(_request: wisp.Request) -> wisp.Response {
 for them, so its body size limits hold before a large upload is read. TLS,
 HTTP/2, HTTP/3 and the other listener options come from roadrunner_gleam.
 
-## What works
+## WebSockets and server-sent events
+
+Wisp has no API for these, but roadrunner_gleam does. Route their paths to
+its [`websocket`](https://hexdocs.pm/roadrunner_gleam/roadrunner_gleam/websocket.html)
+and [`push`](https://hexdocs.pm/roadrunner_gleam/roadrunner_gleam/push.html)
+modules and hand the rest to Wisp:
+
+```gleam
+let wisp_handler = wisp_roadrunner.handler(handle_request, secret_key_base)
+
+fn(request) {
+  case request.path_segments(request) {
+    ["ws"] -> websocket.new(on_init:, handler:) |> websocket.upgrade
+    _ -> wisp_handler(request)
+  }
+}
+|> roadrunner_gleam.new
+```
+
+## Features
 
 - Wisp handlers on HTTP/1.1, HTTP/2 and HTTP/3
 - Request bodies read in pieces of Wisp's `read_chunk_size`, with its
@@ -67,6 +86,8 @@ HTTP/2, HTTP/3 and the other listener options come from roadrunner_gleam.
   request
 - Text, bytes and file responses, file ranges included, sent by the kernel
 - Signed and encrypted cookies, and `serve_static`
+- WebSockets and server-sent events next to a Wisp app, on the same
+  listener
 
 ## Sponsors
 

@@ -1,6 +1,7 @@
 import gleam/erlang/atom.{type Atom}
 import gleam/erlang/process
 import gleam/http
+import gleam/http/response as http_response
 import gleam/int
 import gleam/list
 import gleam/option.{Some}
@@ -8,6 +9,8 @@ import gleam/otp/actor
 import gleam/string
 import gleeunit
 import roadrunner_gleam.{type Builder}
+import roadrunner_gleam/push
+import roadrunner_gleam/request as rr_request
 import wisp
 import wisp_roadrunner
 
@@ -243,4 +246,46 @@ pub fn serve_static_test() {
   let assert Ok(_) = list.key_find(headers, "content-type")
   let #(status, _, _) = call("get", url <> "/static/nope.txt", [], <<>>)
   assert status == 404
+}
+
+// Server-sent events come from roadrunner_gleam, routed before the rest
+// reach Wisp on the same listener.
+pub fn push_next_to_wisp_test() {
+  let wisp_handler =
+    wisp_roadrunner.handler(
+      fn(_) { wisp.ok() |> wisp.string_body("from wisp") },
+      secret,
+    )
+  let builder =
+    fn(request) {
+      case rr_request.path_segments(request) {
+        ["events"] ->
+          push.new(
+            on_init: fn(subject) {
+              process.send(subject, "hello")
+              push.continue(Nil)
+            },
+            handler: fn(state, message) {
+              case message {
+                push.Custom(text) ->
+                  push.stop(state) |> push.send_event(push.event(text))
+                push.Draining(_) -> push.stop(state)
+              }
+            },
+          )
+          |> push.response(200)
+          |> http_response.set_header("content-type", "text/event-stream")
+        _ -> wisp_handler(request)
+      }
+    }
+    |> roadrunner_gleam.new
+    |> roadrunner_gleam.read_body_on_demand
+  use url <- start(builder, "wr_push")
+  let #(status, headers, body) = call("get", url <> "/events", [], <<>>)
+  assert status == 200
+  assert list.key_find(headers, "content-type") == Ok("text/event-stream")
+  assert body == <<"data: hello\n\n">>
+  let #(status, _, body) = call("get", url <> "/other", [], <<>>)
+  assert status == 200
+  assert body == <<"from wisp">>
 }
