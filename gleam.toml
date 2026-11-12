@@ -11,7 +11,7 @@ gleam = ">= 1.19.0"
 target = "erlang"
 
 [dependencies]
-roadrunner_gleam = ">= 0.2.0 and < 0.3.0"
+roadrunner_gleam = "== 0.2.1"
 gleam_stdlib = ">= 1.0.0 and < 2.0.0"
 wisp = ">= 2.2.2 and < 3.0.0"
 gleam_http = ">= 4.5.0 and < 5.0.0"
