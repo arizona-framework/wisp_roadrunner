@@ -1,3 +1,4 @@
+import gleam/bytes_tree
 import gleam/erlang/atom.{type Atom}
 import gleam/erlang/process
 import gleam/http
@@ -11,6 +12,7 @@ import gleeunit
 import roadrunner_gleam.{type Builder}
 import roadrunner_gleam/push
 import roadrunner_gleam/request as rr_request
+import roadrunner_gleam/websocket
 import wisp
 import wisp_roadrunner
 
@@ -289,3 +291,149 @@ pub fn push_next_to_wisp_test() {
   assert status == 200
   assert body == <<"from wisp">>
 }
+
+pub fn bytes_body_test() {
+  use url <- serve("wr_bytes", fn(_) {
+    wisp.ok()
+    |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(<<0, 1, 255>>)))
+  })
+  let #(status, _, body) = call("get", url, [], <<>>)
+  assert status == 200
+  assert body == <<0, 1, 255>>
+}
+
+// A limit past the end of the file sends the rest of it.
+pub fn file_limit_past_end_test() {
+  use url <- serve("wr_file_limit", fn(_) {
+    wisp.ok()
+    |> wisp.set_body(wisp.File(
+      path: "gleam.toml",
+      offset: 7,
+      limit: Some(1_000_000),
+    ))
+  })
+  let #(status, _, body) = call("get", url, [], <<>>)
+  let assert Ok(contents) = read_file("gleam.toml")
+  assert status == 200
+  assert <<"name = ", body:bits>> == <<contents:utf8>>
+}
+
+pub fn file_offset_past_end_test() {
+  use url <- serve("wr_file_offset", fn(_) {
+    wisp.ok()
+    |> wisp.set_body(wisp.File(
+      path: "gleam.toml",
+      offset: 1_000_000,
+      limit: option.None,
+    ))
+  })
+  let #(status, _, _) = call("get", url, [], <<>>)
+  assert status == 500
+}
+
+fn upload_body(boundary: String) -> BitArray {
+  let body =
+    "--"
+    <> boundary
+    <> "\r\ncontent-disposition: form-data; name=\"file\"; filename=\"a.txt\"\r\n"
+    <> "content-type: text/plain\r\n\r\nfile contents\r\n--"
+    <> boundary
+    <> "--\r\n"
+  <<body:utf8>>
+}
+
+pub fn files_too_large_test() {
+  use url <- serve("wr_files_too_large", fn(req) {
+    use _ <- wisp.require_form(wisp.set_max_files_size(req, 4))
+    wisp.ok()
+  })
+  let #(status, _, _) =
+    call(
+      "post",
+      url,
+      [#("content-type", "multipart/form-data; boundary=b0undary")],
+      upload_body("b0undary"),
+    )
+  assert status == 413
+}
+
+// Wisp's temporary files are deleted even when the handler crashes.
+pub fn temporary_files_deleted_on_crash_test() {
+  let self = process.new_subject()
+  use url <- serve("wr_crash", fn(req) {
+    use form <- wisp.require_form(req)
+    let assert [#("file", upload)] = form.files
+    process.send(self, upload.path)
+    panic as "handler crashed"
+  })
+  let #(status, _, _) =
+    call(
+      "post",
+      url,
+      [#("content-type", "multipart/form-data; boundary=b0undary")],
+      upload_body("b0undary"),
+    )
+  assert status == 500
+  let assert Ok(path) = process.receive(self, 1000)
+  assert !is_file(path)
+}
+
+// A client that goes away halfway through the body: Wisp's read fails
+// instead of hanging or crashing.
+pub fn body_cut_short_test() {
+  let self = process.new_subject()
+  use url <- serve("wr_cut_short", fn(req) {
+    process.send(self, wisp.read_body_bits(req))
+    wisp.ok()
+  })
+  truncated_post(port_of(url), "/", 100, 10)
+  assert process.receive(self, 5000) == Ok(Error(Nil))
+}
+
+// WebSockets come from roadrunner_gleam, routed before the rest reach Wisp
+// on the same listener.
+pub fn websocket_next_to_wisp_test() {
+  let wisp_handler =
+    wisp_roadrunner.handler(
+      fn(_) { wisp.ok() |> wisp.string_body("from wisp") },
+      secret,
+    )
+  let builder =
+    fn(request) {
+      case rr_request.path_segments(request) {
+        ["ws"] ->
+          websocket.new(
+            on_init: fn(_subject) { websocket.continue(Nil) },
+            handler: fn(state, message) {
+              case message {
+                websocket.Text(text) ->
+                  websocket.continue(state)
+                  |> websocket.send([websocket.TextFrame("echo " <> text)])
+                _ -> websocket.continue(state)
+              }
+            },
+          )
+          |> websocket.upgrade
+        _ -> wisp_handler(request)
+      }
+    }
+    |> roadrunner_gleam.new
+    |> roadrunner_gleam.read_body_on_demand
+  use url <- start(builder, "wr_websocket")
+  assert websocket_echo(port_of(url), "/ws", "hi") == #(101, <<"echo hi">>)
+  let #(status, _, body) = call("get", url <> "/other", [], <<>>)
+  assert status == 200
+  assert body == <<"from wisp">>
+}
+
+fn port_of(url: String) -> Int {
+  let assert Ok(#(_, port)) = string.split_once(url, "127.0.0.1:")
+  let assert Ok(port) = int.parse(port)
+  port
+}
+
+@external(erlang, "wisp_roadrunner_test_ffi", "websocket_echo")
+fn websocket_echo(port: Int, path: String, text: String) -> #(Int, BitArray)
+
+@external(erlang, "wisp_roadrunner_test_ffi", "truncated_post")
+fn truncated_post(port: Int, path: String, declared: Int, sent: Int) -> Nil
