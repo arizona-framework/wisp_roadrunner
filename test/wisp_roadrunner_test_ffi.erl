@@ -1,5 +1,6 @@
 -module(wisp_roadrunner_test_ffi).
 -export([request/4, silence_logger/0, is_file/1]).
+-export([websocket_echo/3, truncated_post/4]).
 -export([write_cert/1, curl/1, h3_request/4]).
 
 silence_logger() ->
@@ -136,3 +137,58 @@ run_docker(Args, Timeout) ->
     true = is_list(Docker),
     Port = open_port({spawn_executable, Docker}, [{args, Args}, exit_status, binary]),
     collect_curl(Port, <<>>, Timeout).
+
+%% Open a WebSocket on `Path`, send one text frame and return the
+%% handshake's status with the text frame the server sends back.
+websocket_echo(Port, Path, Text) ->
+    {ok, Socket} = gen_tcp:connect({127, 0, 0, 1}, Port, [binary, {active, false}]),
+    ok = gen_tcp:send(Socket, [
+        ~"GET ", Path, ~" HTTP/1.1\r\n",
+        ~"host: 127.0.0.1\r\n",
+        ~"upgrade: websocket\r\n",
+        ~"connection: Upgrade\r\n",
+        ~"sec-websocket-key: dGhlIHNhbXBsZSBub25jZQ==\r\n",
+        ~"sec-websocket-version: 13\r\n\r\n"
+    ]),
+    {Head, Rest} = recv_head(Socket, <<>>),
+    <<"HTTP/1.1 ", Status:3/binary, _/binary>> = Head,
+    Mask = crypto:strong_rand_bytes(4),
+    Size = byte_size(Text),
+    true = Size < 126,
+    ok = gen_tcp:send(Socket, [<<1:1, 0:3, 1:4, 1:1, Size:7>>, Mask, mask(Text, Mask)]),
+    Reply = recv_text_frame(Socket, Rest),
+    ok = gen_tcp:close(Socket),
+    {binary_to_integer(Status), Reply}.
+
+recv_head(Socket, Acc) ->
+    case binary:split(Acc, ~"\r\n\r\n") of
+        [Head, Rest] ->
+            {Head, Rest};
+        [_] ->
+            {ok, Data} = gen_tcp:recv(Socket, 0, 5000),
+            recv_head(Socket, <<Acc/binary, Data/binary>>)
+    end.
+
+%% A server frame is unmasked; a short text frame is all this needs.
+recv_text_frame(_Socket, <<1:1, 0:3, 1:4, 0:1, Size:7, Payload:Size/binary, _/binary>>) ->
+    Payload;
+recv_text_frame(Socket, Acc) ->
+    {ok, Data} = gen_tcp:recv(Socket, 0, 5000),
+    recv_text_frame(Socket, <<Acc/binary, Data/binary>>).
+
+mask(Data, <<M:4/binary>>) ->
+    Keys = binary:copy(M, byte_size(Data) div 4 + 1),
+    crypto:exor(Data, binary:part(Keys, 0, byte_size(Data))).
+
+%% A POST that announces `Declared` bytes of body, sends only `Sent`, and
+%% closes the connection.
+truncated_post(Port, Path, Declared, Sent) ->
+    {ok, Socket} = gen_tcp:connect({127, 0, 0, 1}, Port, [binary, {active, false}]),
+    ok = gen_tcp:send(Socket, [
+        ~"POST ", Path, ~" HTTP/1.1\r\n",
+        ~"host: 127.0.0.1\r\n",
+        ~"content-length: ", integer_to_binary(Declared), ~"\r\n\r\n",
+        binary:copy(~"x", Sent)
+    ]),
+    ok = gen_tcp:close(Socket),
+    nil.
