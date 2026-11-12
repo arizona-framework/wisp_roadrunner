@@ -26,8 +26,8 @@ packages = [
   { name = "marceau", version = "1.3.0", build_tools = ["gleam"], requirements = [], otp_app = "marceau", source = "hex", outer_checksum = "2D1C27504BEF45005F5DFB18591F8610FB4BFA91744878210BDC464412EC44E9" },
   { name = "mist", version = "6.0.3", build_tools = ["gleam"], requirements = ["exception", "gleam_erlang", "gleam_http", "gleam_otp", "gleam_stdlib", "glisten", "gramps", "hpack_erl", "logging"], otp_app = "mist", source = "hex", outer_checksum = "1B07F321D5FA0CB162D81496F2DE96AEB6EF8980F4F38230A4CC3F849497E020" },
   { name = "platform", version = "1.0.0", build_tools = ["gleam"], requirements = [], otp_app = "platform", source = "hex", outer_checksum = "8339420A95AD89AAC0F82F4C3DB8DD401041742D6C3F46132A8739F6AEB75391" },
-  { name = "roadrunner", version = "0.15.0", build_tools = ["rebar3"], requirements = [], otp_app = "roadrunner", source = "hex", outer_checksum = "655C207C87258ECFB011B670DB939F8FA662B08351B7CCB5C5A0D8C2A4543882" },
-  { name = "roadrunner_gleam", version = "0.1.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_http", "gleam_otp", "gleam_stdlib", "roadrunner"], otp_app = "roadrunner_gleam", source = "hex", outer_checksum = "14AF201D2EA036382C0B375D3AA29512579E2C7577701991BBEE8E1E71497CED" },
+  { name = "roadrunner", version = "0.16.1", build_tools = ["rebar3"], requirements = [], otp_app = "roadrunner", source = "hex", outer_checksum = "F43F238C3B52715010E2F42D8386FEE0339A264FBB44564F68AD14E7B996D71C" },
+  { name = "roadrunner_gleam", version = "0.2.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_http", "gleam_otp", "gleam_stdlib", "roadrunner"], otp_app = "roadrunner_gleam", source = "hex", outer_checksum = "E5296EF923AAEA27B752D40C90CA7FFD62403EB37DFE07E9808B245D1C8D5D32" },
   { name = "simplifile", version = "2.7.0", build_tools = ["gleam"], requirements = ["filepath", "gleam_stdlib"], otp_app = "simplifile", source = "hex", outer_checksum = "A2727627B063E87351934C7F7F008F2D1FDB16F6DE0B8C79F9E46459CFC9C164" },
   { name = "splitter", version = "1.3.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "splitter", source = "hex", outer_checksum = "8F1485306E0D59168A39E12ED8844F9F616EC59C3C63AFCFDAE04DBD68690CBC" },
   { name = "wisp", version = "2.2.2", build_tools = ["gleam"], requirements = ["directories", "exception", "filepath", "gleam_crypto", "gleam_erlang", "gleam_http", "gleam_json", "gleam_stdlib", "houdini", "logging", "marceau", "mist", "simplifile"], otp_app = "wisp", source = "hex", outer_checksum = "5FF5F1E288C3437252ABB93D8F9CF42FF652CE7AD54480CFE736038DC09C4F22" },
@@ -40,5 +40,5 @@ gleam_http = { version = ">= 4.5.0 and < 5.0.0" }
 gleam_otp = { version = ">= 1.3.0 and < 2.0.0" }
 gleam_stdlib = { version = ">= 1.0.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
-roadrunner_gleam = { version = ">= 0.1.0 and < 0.2.0" }
+roadrunner_gleam = { version = ">= 0.2.0 and < 0.3.0" }
 wisp = { version = ">= 2.2.2 and < 3.0.0" }

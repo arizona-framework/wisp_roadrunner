@@ -1,5 +1,5 @@
 name = "wisp_roadrunner"
-version = "0.1.0"
+version = "0.2.0"
 description = "Run Wisp apps on Roadrunner, the pure-Erlang HTTP/1.1, HTTP/2, HTTP/3 and WebSocket server"
 licences = ["Apache-2.0"]
 repository = { type = "github", user = "arizona-framework", repo = "wisp_roadrunner" }
@@ -11,7 +11,7 @@ gleam = ">= 1.19.0"
 target = "erlang"
 
 [dependencies]
-roadrunner_gleam = ">= 0.1.0 and < 0.2.0"
+roadrunner_gleam = ">= 0.2.0 and < 0.3.0"
 gleam_stdlib = ">= 1.0.0 and < 2.0.0"
 wisp = ">= 2.2.2 and < 3.0.0"
 gleam_http = ">= 4.5.0 and < 5.0.0"
