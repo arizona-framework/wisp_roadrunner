@@ -18,6 +18,20 @@
 ////   process.sleep_forever()
 //// }
 //// ```
+////
+//// Wisp has no API for WebSockets or server-sent events. Serve them with
+//// roadrunner_gleam's `websocket` and `push` modules, routing those paths
+//// before the rest reach the handler this module makes:
+////
+//// ```gleam
+//// let wisp_handler = wisp_roadrunner.handler(handle_request, secret_key_base)
+//// let handler = fn(request) {
+////   case request.path_segments(request) {
+////     ["ws"] -> websocket.new(on_init:, handler:) |> websocket.upgrade
+////     _ -> wisp_handler(request)
+////   }
+//// }
+//// ```
 
 import exception
 import gleam/bytes_tree
